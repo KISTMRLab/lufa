@@ -1,7 +1,9 @@
 {
-  "file": "method.svg",
-  "kind": "scientific-redraw",
+  "file": "graphical-abstract.png",
+  "kind": "ai-generated-scientific-redraw",
   "source": "Available conference abstract and the repository REQUIREMENTS.md",
-  "alt": "Scientific method schematic for lufa",
-  "caption": "Graphical abstract diagram. Aligned speech and text representations support recorded facial-motion retrieval."
+  "alt": "Graphical abstract: aligned voice and text representations retrieve upper-face animation for VR and MR avatars",
+  "caption": "Graphical abstract diagram. Aligned speech and text representations support recorded facial-motion retrieval.",
+  "original_figure": "method.svg",
+  "generation_prompt": "generation-prompt.txt"
 }

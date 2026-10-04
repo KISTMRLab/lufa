@@ -8,7 +8,7 @@
 
 > Lightweight upper-face animation for VR and MR avatars.
 
-![Scientific method schematic for lufa](paper-assets/method.svg)
+![Graphical abstract: aligned voice and text representations retrieve upper-face animation for VR and MR avatars](paper-assets/graphical-abstract.png)
 
 *Graphical abstract diagram. Aligned speech and text representations support recorded facial-motion retrieval.*
 

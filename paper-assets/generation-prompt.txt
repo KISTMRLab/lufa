@@ -1,0 +1,18 @@
+Initial generation prompt
+
+Use case: scientific-educational. Produce an outstanding publication-quality graphical abstract for a research GitHub README. Wide landscape high-resolution canvas. Visual family: the admired Wearable MR Agent graphic—white background, deep navy elegant typography, muted teal/blue/indigo accents, delicate panel borders and restrained amber highlights. Improve that baseline: fewer words, stronger hierarchy, spacious composition, one instantly clear research narrative. Beautiful flat vector-like scientific graphics, crisp arrows, precise alignment, refined small icons, selective wireframe human/face or motion-sequence glyphs. Research figure, not decorative website artwork. No photorealistic people, cartoon characters, scenic illustration, neon, glossy 3D boxes, watermark, invented quantitative charts or unsupported benefits. Labels must be large and legible. Exact spelling. Arrows encode actual data dependencies; no stray or duplicate connectors. No caption about image generation or creation tools.
+Title exactly "LUFA"
+Subtitle exactly "Lightweight Upper-Face Animation for VR/MR Avatars"
+Tell the core abstract-supported story in three beautifully balanced regions with one strong upper-face output. Avoid unsupported full-paper detail.
+"01 · Encode voice and text":
+Separate inputs "Voice" (waveform glyph) → "Wav2Vec2.0", and "Text" (short transcript glyph) → "BERT". Both encoders labelled with small "Fine-tuned encoders". Both outputs enter the same clean "Aligned latent representations" graphic—a tiny elegant pairing diagram, not a statistical chart.
+"02 · Learn alignment, retrieve motion":
+Clearly separated training inset above, runtime below.
+Training inset title "Training supervision" contains "Contrastive alignment" and "Reconstruction loss", with subtle DASHED supervision connectors toward aligned representations, and a small "Recorded facial motion" training target feeding reconstruction supervision. Do not specify exact loss wiring, dimensions, channel counts or decoder architecture because only abstract evidence available.
+Runtime solid arrows: Aligned representations → "Similarity retrieval". A cylinder "Facial-animation bank" (small "Recorded sequences") feeds retrieval. Retrieval → "Selected upper-face motion".
+"03 · Animate the upper face":
+Show a refined front-view wireframe head with ONLY brow/eye region highlighted teal/indigo, the lower face quiet palegray; next to it a tiny three-frame sequence of subtly changing brow/eye configurations (not emotional caricatures). Label "Brow + eye-region animation" and "VR / MR avatar".
+Training-only reconstruction must be separate from runtime: NO direct latent-to-motion decoder in inference. The recorded bank supplies selected motion.
+Bottom takeaway exactly "Speech and text → aligned representations → recorded facial motion".
+Small secondary label exactly "Retrieval at inference". No parameter counts, fps claims, timing/latency figures, 128D or nine-channel specification, emotion–liveness branch, AdaLN, VAE or GAN—the later journal manuscript is not LUFA.
+Composition should be elegant, intuitive and less dense than a typical architecture chart. Let the glowing-but-flat highlighted upper-face contour make the output self-explanatory, no neon or decorative illustration.
