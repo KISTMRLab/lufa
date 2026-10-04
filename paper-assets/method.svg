@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1500" height="650" viewBox="0 0 1500 650" role="img" aria-labelledby="title desc">
+<title id="title">LUFA: aligned speech/text representations retrieve recorded facial motion</title><desc id="desc">Scientific method schematic. Nodes and arrows describe data flow; dashed arrows identify training supervision.</desc>
+<defs><marker id="arrow" markerWidth="9" markerHeight="9" refX="8" refY="4.5" orient="auto"><path d="M0 0 L9 4.5 L0 9 Z" fill="#34485b"/></marker></defs>
+<rect width="100%" height="100%" fill="white"/>
+<style>text{font-family:Arial,Helvetica,sans-serif;fill:#182c3e}.label{font-size:23px;font-weight:600}.detail{font-size:18px}.section{font-size:20px;font-weight:700;fill:#365770}</style>
+<text x="36" y="44" font-size="27" font-weight="700">LUFA: aligned speech/text representations retrieve recorded facial motion</text>
+<text class="section" x="36" y="92">Representation learning</text>
+<rect x="36" y="125" width="200" height="85" rx="6" fill="#edf5fb" stroke="#6c9bbb" stroke-width="2"/>
+<text class="label" x="136.0" y="161.5" text-anchor="middle">Speech waveform</text>
+<text class="detail" x="136.0" y="187.5" text-anchor="middle">aligned to facial clip</text>
+<rect x="36" y="275" width="200" height="85" rx="6" fill="#edf5fb" stroke="#6c9bbb" stroke-width="2"/>
+<text class="label" x="136.0" y="311.5" text-anchor="middle">Transcript</text>
+<text class="detail" x="136.0" y="337.5" text-anchor="middle">same speech segment</text>
+<rect x="290" y="125" width="245" height="85" rx="6" fill="#edf5fb" stroke="#6c9bbb" stroke-width="2"/>
+<text class="label" x="412.5" y="161.5" text-anchor="middle">Wav2Vec2.0</text>
+<text class="detail" x="412.5" y="187.5" text-anchor="middle">fine-tuned audio encoder</text>
+<rect x="290" y="275" width="245" height="85" rx="6" fill="#edf5fb" stroke="#6c9bbb" stroke-width="2"/>
+<text class="label" x="412.5" y="311.5" text-anchor="middle">BERT</text>
+<text class="detail" x="412.5" y="337.5" text-anchor="middle">fine-tuned text encoder</text>
+<rect x="590" y="125" width="245" height="85" rx="6" fill="#f3effa" stroke="#9681b6" stroke-width="2"/>
+<text class="label" x="712.5" y="174.5" text-anchor="middle">Audio representation</text>
+<rect x="590" y="275" width="245" height="85" rx="6" fill="#f3effa" stroke="#9681b6" stroke-width="2"/>
+<text class="label" x="712.5" y="324.5" text-anchor="middle">Text representation</text>
+<rect x="895" y="125" width="250" height="85" rx="6" fill="#fff5e8" stroke="#c79958" stroke-width="2"/>
+<text class="label" x="1020.0" y="174.5" text-anchor="middle">Contrastive alignment</text>
+<rect x="895" y="275" width="250" height="85" rx="6" fill="#fff5e8" stroke="#c79958" stroke-width="2"/>
+<text class="label" x="1020.0" y="311.5" text-anchor="middle">Reconstruction loss</text>
+<text class="detail" x="1020.0" y="337.5" text-anchor="middle">facial-motion supervision</text>
+<rect x="1200" y="275" width="265" height="85" rx="6" fill="#f4f6f8" stroke="#929da6" stroke-width="2"/>
+<text class="label" x="1332.5" y="311.5" text-anchor="middle">Recorded facial motion</text>
+<text class="detail" x="1332.5" y="337.5" text-anchor="middle">training target</text>
+<polyline points="236,167 290,167" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline points="535,167 590,167" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline points="236,317 290,317" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline points="535,317 590,317" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline points="835,167 895,167" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<polyline points="835,317 865,317 865,220 1020,220 1020,210" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<polyline points="835,190 860,190 860,300 895,300" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<polyline points="835,335 895,335" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<polyline points="1200,317 1145,317" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)" stroke-dasharray="7 5"/>
+<text class="section" x="36" y="420">Retrieval at inference</text>
+<rect x="36" y="450" width="270" height="90" rx="6" fill="#edf5fb" stroke="#6c9bbb" stroke-width="2"/>
+<text class="label" x="171.0" y="489.0" text-anchor="middle">Voice and/or text</text>
+<text class="detail" x="171.0" y="515.0" text-anchor="middle">encoded query</text>
+<rect x="370" y="450" width="280" height="90" rx="6" fill="#f3effa" stroke="#9681b6" stroke-width="2"/>
+<text class="label" x="510.0" y="489.0" text-anchor="middle">Shared latent space</text>
+<text class="detail" x="510.0" y="515.0" text-anchor="middle">similarity search</text>
+<rect x="720" y="450" width="280" height="90" rx="6" fill="#f4f6f8" stroke="#929da6" stroke-width="2"/>
+<text class="label" x="860.0" y="489.0" text-anchor="middle">Animation bank</text>
+<text class="detail" x="860.0" y="515.0" text-anchor="middle">recorded facial sequences</text>
+<rect x="1070" y="450" width="395" height="90" rx="6" fill="#eef7f1" stroke="#79a58a" stroke-width="2"/>
+<text class="label" x="1267.5" y="489.0" text-anchor="middle">Retrieved animation</text>
+<text class="detail" x="1267.5" y="515.0" text-anchor="middle">existing motion, no inference decoder</text>
+<polyline points="306,495 370,495" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline points="650,495 720,495" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<polyline points="1000,495 1070,495" fill="none" stroke="#34485b" stroke-width="2.5" marker-end="url(#arrow)"/>
+<text class="section" x="36" y="602">Solid: data flow     Dashed: training supervision     Schematic details: see REQUIREMENTS.md</text>
+</svg>

@@ -1,0 +1,17 @@
+title: "LUFA"
+description: "Lightweight upper-face animation for VR and MR avatars."
+markdown: kramdown
+kramdown:
+  input: GFM
+exclude:
+  - src
+  - tests
+  - .venv
+  - data
+  - runs
+  - outputs
+  - checkpoints
+  - pyproject.toml
+  - requirements.txt
+  - package.json
+  - package-lock.json

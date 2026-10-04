@@ -1,0 +1,7 @@
+{
+  "file": "method.svg",
+  "kind": "scientific-redraw",
+  "source": "Available conference abstract and the repository REQUIREMENTS.md",
+  "alt": "Scientific method schematic for lufa",
+  "caption": "New scientific schematic based on the LUFA conference abstract. This is not an extracted paper figure; pooling, loss wiring and bank organization are implementation assumptions documented in REQUIREMENTS.md."
+}
