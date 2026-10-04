@@ -16,4 +16,4 @@ Use BEAT's synchronized speech, transcripts and ARKit facial motion as the prima
 
 ## Deliverables and acceptance
 
-Standalone package with train, bank, retrieve and evaluate commands; data-preparation helper for BEAT facial JSON; README with source/citation/access/licensing, exact contracts, commands and assumptions. No dataset, model or checkpoint distribution. Small procedural retrieval checks and syntax validation; full pretrained fine-tuning is outside verification in this workspace.
+Standalone package with train, bank, retrieve and evaluate commands; data-preparation helper for BEAT facial JSON; README with source/citation/access/licensing, exact contracts, commands and assumptions. A local browser viewer can inspect all nine channels from an explicitly authored controller example, user-uploaded recorded motion, or the actual trained model/bank retrieval path. The authored example is not presented as learned output. No dataset, model or checkpoint distribution. Procedural retrieval, API/channel checks and syntax validation; full pretrained fine-tuning is outside verification in this workspace.

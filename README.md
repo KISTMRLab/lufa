@@ -60,7 +60,19 @@ This independent research baseline fine-tunes **Wav2Vec2.0 and BERT** using moti
 
 The indexed conference abstract was available; the full PDF was not supplied locally or accessible during implementation. [REQUIREMENTS.md](REQUIREMENTS.md) distinguishes abstract-supported components from our choices: pooled 128-dimensional latents, symmetric InfoNCE,90 × 9 reconstruction heads, BEAT data, and equal-weight multimodal retrieval. This does **not** reuse or claim the later emotion–liveness manuscript's architecture, metrics or timing.
 
-### Setup and local encoders
+### Immediate 3D channel demo
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -e .
+python scripts/prepare_viewer.py
+lufa serve
+```
+
+Open `http://127.0.0.1:8767`. The first clip is an authored controller example for the nine brow/eye channels, not a trained retrieval result. Use the checkpoint and bank workflow below to retrieve recorded motion.
+
+### Detailed setup and local encoders
 
 Python 3.10+. Install a suitable [PyTorch build](https://pytorch.org/get-started/locally/), then:
 
@@ -77,7 +89,7 @@ On Linux/macOS activate with `source .venv/bin/activate`. Obtain Wav2Vec2 and BE
 
 ### Synthetic quickstart
 
-After installation, run `python scripts/smoke.py`. It creates two aligned three-second WAV/motion records, loads them through the production manifest and batching code, performs one CPU optimization step with small randomly initialized Wav2Vec2/BERT configurations, saves and reloads a production-compatible checkpoint, builds a bank, and retrieves a recorded motion. Inspect the model, bank, and `retrieved-face.npz` under `outputs/smoke/`. It needs no network or model download. For real training, retain the manifest, WAV, transcript, and `[T,9]` motion contracts below, then point the CLI at local pretrained encoders or use `--from-scratch` with your local tokenizer.
+After installation, run `python scripts/verify.py`. It creates two aligned three-second WAV/motion records, loads them through the production manifest and batching code, performs one CPU optimization step with small randomly initialized Wav2Vec2/BERT configurations, saves and reloads a production-compatible checkpoint, builds a bank, and retrieves a recorded motion. Inspect the model, bank, and `retrieved-face.npz` under `outputs/verify/`. It needs no network or model download. For real training, retain the manifest, WAV, transcript, and `[T,9]` motion contracts below, then point the CLI at local pretrained encoders or use `--from-scratch` with your local tokenizer.
 
 ### Public dataset preparation
 
@@ -124,3 +136,22 @@ Training defaults (20 epochs, 2e-5 AdamW, temperature .07) are implementation as
 The bank contains normalized fused embeddings, recorded 90 × 9 motions, clip ids and speaker ids from **training records only**. Query can use audio, text or their normalized average. Retrieval copies the highest-scoring clip; `--frames` optionally interpolates to caller length. Output NPZ includes motion/names/fps, and adjacent JSON records top-k ids and cosine similarities. This preserves recorded motion rather than decoding an average expression.
 
 Evaluation rejects held-out speaker overlap with checkpoint/bank speakers and reports motion MAE plus the best possible bank MAE against each reference. These are diagnostics, not the paper's reported evaluation or evidence of perceived naturalness. A semantically valid retrieved expression can differ from the single reference.
+
+
+### Local 3D face viewer and recorded retrieval
+
+The local viewer uses an original procedural Three.js character. Its first motion is an **authored controller example** that exercises the nine brow/eye channels; it is synthetic and says nothing about the trained model. Run `python scripts/prepare_viewer.py` once to download pinned Three.js 0.170.0 into ignored `static/vendor/`, then:
+
+```powershell
+lufa serve
+```
+
+Open http://127.0.0.1:8767. The viewer can play the authored channel sequence, inspect each channel manually, and upload your own recorded `.npz` or named-channel `.json` through the local API. NPZ uses `motion: [T,9]`, optional `names` in the exact documented order, and optional `fps`. JSON uses `motion: [[...nine values...], ...]` in the exact order, or BEAT-style `names` plus `frames: [{"weights": [...]}]`; the latter is reordered by channel name. Values must be finite and in `[0,1]`. Uploaded motion is held only for the active page response, not added to the bank.
+
+To run **actual learned retrieval**, first train a local checkpoint and build a bank with the commands above, then restart the viewer:
+
+```powershell
+lufa serve --model runs/lufa --bank runs/bank.npz --device cpu
+```
+
+Choose text, a 16-kHz mono WAV file, or both. The API calls the saved encoders through `load_model` and `query`, loads the bank through `read_bank`, ranks with `nearest`, and returns the existing recorded clip plus ranked clip IDs/speakers/cosine scores. The browser does not train or download any model. No weights, dataset clips, banks, or original avatar assets are distributed. The viewer is a channel playback aid, not a claim of reproduced visual quality or paper latency.

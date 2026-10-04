@@ -14,3 +14,4 @@ outputs/
 *.mp4
 *.pdf
 .pytest_cache/
+static/vendor/

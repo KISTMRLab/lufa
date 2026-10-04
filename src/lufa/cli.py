@@ -164,6 +164,17 @@ def convert(args):
     np.save(output, motion(args.input))
 
 
+def serve(args):
+    from http.server import ThreadingHTTPServer
+    from .server import create_handler
+    if bool(args.model) != bool(args.bank):
+        raise ValueError("Provide --model and --bank together")
+    server = ThreadingHTTPServer((args.host, args.port), create_handler(Path(args.model) if args.model else None,
+                                                                 Path(args.bank) if args.bank else None, args.device))
+    print(f"Open http://{args.host}:{args.port}")
+    server.serve_forever()
+
+
 def main():
     parser = argparse.ArgumentParser(description="LUFA-inspired audio/text retrieval")
     sub = parser.add_subparsers(dest="command", required=True)
@@ -206,6 +217,13 @@ def main():
     p.add_argument("--split", choices=["validation", "test"], default="test")
     p.add_argument("--device", default="cpu")
     p.set_defaults(run=evaluate)
+    p = sub.add_parser("serve")
+    p.add_argument("--model", help="user-trained checkpoint directory")
+    p.add_argument("--bank", help="user-built recorded-motion bank")
+    p.add_argument("--device", default="cpu")
+    p.add_argument("--host", default="127.0.0.1")
+    p.add_argument("--port", type=int, default=8767)
+    p.set_defaults(run=serve)
     args = parser.parse_args()
     args.run(args)
 

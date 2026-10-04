@@ -16,7 +16,7 @@ from lufa.model import RetrievalModel
 def main():
     torch.manual_seed(11)
     rng = np.random.default_rng(11)
-    root = Path("outputs/smoke").resolve()
+    root = Path("outputs/verify").resolve()
     root.mkdir(parents=True, exist_ok=True)
     rows = []
     for index in range(2):
@@ -55,8 +55,9 @@ def main():
     retrieve(Namespace(model=str(model_dir), bank=str(bank_path), text="demo utterance 0", wav=None,
                        top_k=2, frames=None, output=str(output), device="cpu"))
     assert output.exists() and Path(str(output) + ".json").exists()
-    print(f"smoke passed: loss={loss.item():.4f}, checkpoint reload, bank, retrieval -> {output}")
+    print(f"verify passed: loss={loss.item():.4f}, checkpoint reload, bank, retrieval -> {output}")
 
 
 if __name__ == "__main__":
     main()
+
