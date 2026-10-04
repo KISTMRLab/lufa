@@ -10,7 +10,7 @@
 
 ![Scientific method schematic for lufa](paper-assets/method.svg)
 
-*New scientific schematic based on the LUFA conference abstract. This is not an extracted paper figure; pooling, loss wiring and bank organization are implementation assumptions documented in REQUIREMENTS.md.*
+*Graphical abstract diagram. Aligned speech and text representations support recorded facial-motion retrieval.*
 
 ## Why this research
 
