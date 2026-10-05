@@ -10,6 +10,7 @@ import math
 import tempfile
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
+from .avatar_http import serve_avatar_asset
 
 import numpy as np
 
@@ -37,7 +38,7 @@ def parse_motion(body: bytes, filename: str):
             fps = int(obj["fps"]) if "fps" in obj else 30
     elif filename.lower().endswith(".json"):
         obj = json.loads(body)
-        values = obj.get("motion", obj.get("frames"))
+        values = obj.get("motion", obj.get("weights", obj.get("frames")))
         names = obj.get("names", CHANNELS)
         fps = obj.get("fps", 30)
         if values and isinstance(values[0], dict):
@@ -90,6 +91,7 @@ def create_handler(model_dir: Path | None = None, bank_path: Path | None = None,
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
+            if serve_avatar_asset(self, Path(__file__).resolve().parents[2] / "static"): return
             if self.path == "/api/demo": self._json(authored_controller()); return
             if self.path == "/api/status":
                 self._json({"retrieval_configured": bool(model_dir and bank_path), "channels": CHANNELS,

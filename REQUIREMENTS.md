@@ -17,3 +17,7 @@ Use BEAT's synchronized speech, transcripts and ARKit facial motion as the prima
 ## Deliverables and acceptance
 
 Standalone package with train, bank, retrieve and evaluate commands; data-preparation helper for BEAT facial JSON; README with source/citation/access/licensing, exact contracts, commands and assumptions. A local browser viewer can inspect all nine channels from an explicitly authored controller example, user-uploaded recorded motion, or the actual trained model/bank retrieval path. The authored example is not presented as learned output. No dataset, model or checkpoint distribution. Procedural retrieval, API/channel checks and syntax validation; full pretrained fine-tuning is outside verification in this workspace.
+
+## Bundled fictional avatar substitution
+
+Two newly generated fictional CC0 humanoids replace the original avatar assets in the browser demo. They provide a 53-bone rig and named ARKit/viseme targets. Motion retargeting adapts source joints to their bind pose; speaking envelopes approximate mouth motion rather than phoneme alignment. The optional recorded BEAT companion inspects public motion, face and audio files prepared locally, independently of the paper's learned algorithm. No dataset recordings or trained weights are bundled.

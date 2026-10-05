@@ -37,6 +37,10 @@ class ViewerTests(unittest.TestCase):
         data = {"names": reverse, "frames": [{"weights": row[::-1]} for row in motion.tolist()], "fps": 30}
         loaded_json = parse_motion(json.dumps(data).encode(), "clip.json")
         np.testing.assert_allclose(loaded_json["motion"], motion, atol=1e-6)
+        # The selective BEAT preparation tool emits named rows, not frame dicts.
+        prepared = {"names": reverse, "weights": motion[:, ::-1].tolist(), "fps": 30}
+        loaded_prepared = parse_motion(json.dumps(prepared).encode(), "beat-face.json")
+        np.testing.assert_allclose(loaded_prepared["motion"], motion, atol=1e-6)
 
     def test_api_query_uses_trained_bank_path_for_text_audio_and_fused(self):
         bank = {"embeddings": np.asarray([[1., 0.], [0., 1.]]),

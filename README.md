@@ -155,3 +155,20 @@ lufa serve --model runs/lufa --bank runs/bank.npz --device cpu
 ```
 
 Choose text, a 16-kHz mono WAV file, or both. The API calls the saved encoders through `load_model` and `query`, loads the bank through `read_bank`, ranks with `nearest`, and returns the existing recorded clip plus ranked clip IDs/speakers/cosine scores. The browser does not train or download any model. No weights, dataset clips, banks, or original avatar assets are distributed. The viewer is a channel playback aid, not a claim of reproduced visual quality or paper latency.
+
+<!-- avatar-recorded-motion:start -->
+## Bundled characters and recorded public motion
+
+The browser demos include Rowan and Mira, two new fictional GLB characters built with MPFB and MakeHuman community assets under CC0 1.0. See [avatar licensing and provenance](static/avatars/LICENSE.md). Use the character selector in the stage. The shared renderer supports body bones, ARKit facial channels, and approximate speaking motion.
+
+The [recorded BEAT motion companion](static/recorded-motion.html) opens at `/static/recorded-motion.html` while the demo server is running. It plays locally selected motion, face, and WAV files on the bundled characters; this is recorded public-data inspection, separate from the paper implementation. No BEAT recording, dataset archive, or trained model is bundled. Install the one preparation dependency and fetch a small official sample into ignored `outputs/beat-demo/`:
+
+```sh
+python -m pip install numpy
+python scripts/beat_demo/fetch_modalities.py --speaker 1 --sequence 1_wayne_0_1_1 --include-bvh --max-bytes 25000000 --output-dir outputs/beat-demo/source
+python scripts/beat_demo/prepare_bvh.py --bvh outputs/beat-demo/source/1_wayne_0_1_1.bvh --output outputs/beat-demo/sample/1_wayne_0_1_1-raw-motion.json --frames 120
+python scripts/beat_demo/prepare_modalities.py --sequence 1_wayne_0_1_1 --source outputs/beat-demo/source --output outputs/beat-demo/sample --frames 120
+```
+
+Open the companion and select `outputs/beat-demo/sample/1_wayne_0_1_1-raw-motion.json`, `1_wayne_0_1_1-face.json`, and `1_wayne_0_1_1.wav`. The downloader caps each original file at 25 MB; the prepared clip contains up to 120 frames. The viewer uses local files and does not upload them. For other BEAT takes, substitute a matching official speaker and sequence ID.
+<!-- avatar-recorded-motion:end -->
