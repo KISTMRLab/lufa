@@ -40,7 +40,7 @@ Consult the full conference paper for evaluation details
 
 ## Explore the implementation
 
-Audio/text fine-tuning, reconstruction and contrastive objectives, bank building and recorded facial-clip retrieval. Architecture details absent from the accessible abstract are explicitly assumed.
+Audio/text fine-tuning, reconstruction and contrastive objectives, BEAT clip preparation with speaker-disjoint splits, bank building and recorded facial-clip retrieval, which the browser viewer serves once a local model and bank exist. Architecture details absent from the accessible abstract are explicitly assumed.
 
 This repository contains independently written research code. The institute's original source, datasets and trained models are not distributed. Public-data preparation, commands, assumptions and checks are documented below and in [REQUIREMENTS.md](REQUIREMENTS.md).
 
@@ -64,7 +64,7 @@ python -m pip install -e .
 python scripts/start_demo.py
 ```
 
-Open **http://127.0.0.1:8080/**. Click **Play** to animate the automatically loaded nine-channel face example, or adjust its channel controls. The launcher selects the bundled inputs automatically; it also builds the small authored index for RAG demos. Avatar demos prepare their pinned Three.js modules on first launch, so that step needs internet access. Model weights and public datasets are optional for the starter workflow and are prepared separately for real-data use.
+Open **http://127.0.0.1:8080/**. When a trained checkpoint (`outputs/lufa/model/`) and a recorded-motion bank (`outputs/lufa/bank.npz`) exist, the launcher serves learned retrieval over recorded BEAT face clips; `python scripts/start_demo.py --train-small` prepares local BEAT takes, trains a small from-scratch model and builds that bank first (see the BEAT-first setup below). Otherwise click **Play** to animate the automatically loaded nine-channel authored face example, or adjust its channel controls. The launcher selects the bundled inputs automatically. Avatar demos prepare their pinned Three.js modules on first launch, so that step needs internet access. Model weights and public datasets are optional for the starter workflow and are prepared separately for real-data use.
 
 The 3D presentation uses shared Three.js avatar components and bundled fictional CC0 characters. The paper-specific algorithms and data adapters live in this repository.
 
