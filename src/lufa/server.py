@@ -62,9 +62,25 @@ def authored_controller():
     return {**validate_motion(frames), "origin": "authored-controller-example", "note": "Synthetic channel controls; no recorded clip or learned retrieval."}
 
 
-def create_handler(model_dir: Path | None = None, bank_path: Path | None = None, device="cpu"):
+DEFAULT_DEMO_TEXT = "I really like to talk about the things that make me happy"
+
+
+def model_provenance(model_dir: Path | None):
+    """Optional note written next to a checkpoint (e.g. by start_demo --train-small)."""
+    path = Path(model_dir) / "demo-provenance.json" if model_dir else None
+    if path and path.is_file():
+        try:
+            return json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            return None
+    return None
+
+
+def create_handler(model_dir: Path | None = None, bank_path: Path | None = None, device="cpu",
+                   demo_text: str | None = DEFAULT_DEMO_TEXT):
     static = Path(__file__).parents[2] / "static"
     model_state = {}
+    demo_text = demo_text or DEFAULT_DEMO_TEXT
 
     def query_bank(text: str, wav_bytes: bytes | None, top_k: int, frames: int | None):
         if not model_dir or not bank_path:
@@ -84,18 +100,30 @@ def create_handler(model_dir: Path | None = None, bank_path: Path | None = None,
             indices, scores = nearest(embedding, bank["embeddings"], min(top_k, len(bank["ids"])))
             selected = bank["motions"][indices[0]]
             if frames: selected = resample(selected, frames)
-            return {**validate_motion(selected, CHANNELS, 30), "origin": "trained-bank-retrieval",
-                    "matches": [{"id": str(bank["ids"][i]), "speaker": str(bank["speakers"][i]), "cosine": float(s)} for i, s in zip(indices, scores)]}
+            texts = bank.get("texts")
+            matches = [{"id": str(bank["ids"][i]), "speaker": str(bank["speakers"][i]), "cosine": float(s),
+                        **({"text": str(texts[i])} if texts is not None else {})} for i, s in zip(indices, scores)]
+            return {**validate_motion(selected, CHANNELS, 30), "origin": "trained-bank-retrieval", "matches": matches}
         finally:
             if wav_path: Path(wav_path).unlink(missing_ok=True)
+
+    def first_clip():
+        """Learned retrieval for a default text query when a model and bank are configured; authored otherwise."""
+        if not (model_dir and bank_path):
+            return authored_controller()
+        try:
+            return {**query_bank(demo_text, None, 3, None), "query": demo_text}
+        except Exception as exc:  # keep the viewer usable; the fallback is labelled
+            return {**authored_controller(), "note": f"Learned retrieval failed ({exc}); showing the authored controller example."}
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             if serve_avatar_asset(self, Path(__file__).resolve().parents[2] / "static"): return
-            if self.path == "/api/demo": self._json(authored_controller()); return
+            if self.path == "/api/demo": self._json(first_clip()); return
+            if self.path == "/api/authored": self._json(authored_controller()); return
             if self.path == "/api/status":
                 self._json({"retrieval_configured": bool(model_dir and bank_path), "channels": CHANNELS,
-                            "models_bundled": False}); return
+                            "models_bundled": False, "model_note": model_provenance(model_dir)}); return
             assets = {"/": (static / "index.html", "text/html; charset=utf-8"),
                       "/static/avatar.js": (static / "avatar.js", "text/javascript; charset=utf-8"),
                       "/static/vendor/three.module.js": (static / "vendor/three.module.js", "text/javascript; charset=utf-8"),
@@ -151,9 +179,10 @@ def main():
     parser.add_argument("--device", default="cpu")
     parser.add_argument("--host", default="127.0.0.1")
     parser.add_argument("--port", type=int, default=8767)
+    parser.add_argument("--demo-text", default=DEFAULT_DEMO_TEXT)
     args = parser.parse_args()
     if bool(args.model) != bool(args.bank): parser.error("provide --model and --bank together")
-    server = ThreadingHTTPServer((args.host, args.port), create_handler(args.model, args.bank, args.device))
+    server = ThreadingHTTPServer((args.host, args.port), create_handler(args.model, args.bank, args.device, args.demo_text))
     print(f"Open http://{args.host}:{args.port}")
     server.serve_forever()
 

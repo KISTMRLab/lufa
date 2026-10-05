@@ -26,8 +26,14 @@ class RetrievalModel(nn.Module):
             text = BertModel.from_pretrained(text_path, local_files_only=True)
         return cls(audio, text)
 
+    def uses_attention_mask(self):
+        # Hugging Face guidance: group-norm feature extractors (e.g. wav2vec2-base) were trained without an
+        # attention mask and expect zero-padded input; layer-norm variants (e.g. wav2vec2-large-lv60) use the mask.
+        return getattr(self.audio.config, "feat_extract_norm", "group") == "layer"
+
     def encode_audio(self, samples, mask):
-        h = self.audio(samples, attention_mask=mask).last_hidden_state
+        samples = samples * mask.to(samples.dtype)  # padding is exactly zero for both variants
+        h = self.audio(samples, attention_mask=mask if self.uses_attention_mask() else None).last_hidden_state
         lengths = mask.sum(-1)
         for kernel, stride in zip(self.audio.config.conv_kernel, self.audio.config.conv_stride):
             lengths = torch.div(lengths - kernel, stride, rounding_mode="floor") + 1

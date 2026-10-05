@@ -80,6 +80,41 @@ This independent research baseline fine-tunes **Wav2Vec2.0 and BERT** using moti
 
 The indexed conference abstract was available; the full PDF was not supplied locally or accessible during implementation. [REQUIREMENTS.md](REQUIREMENTS.md) distinguishes abstract-supported components from our choices: pooled 128-dimensional latents, symmetric InfoNCE,90 × 9 reconstruction heads, BEAT data, and equal-weight multimodal retrieval. This does **not** reuse or claim the later emotion–liveness manuscript's architecture, metrics or timing.
 
+### BEAT-first setup (learned retrieval on public data)
+
+Install PyTorch for your platform, then the package. The commands below fetch three small official BEAT takes (WAV, ARKit face JSON and word TextGrid, each file capped at 25 MB) into ignored `outputs/beat-raw/`, train a compact from-scratch model on CPU, build the recorded bank and open the viewer on learned retrieval:
+
+```sh
+python -m pip install -e .
+lufa fetch-beat --speaker 1 --takes 1_wayne_0_1_1 1_wayne_0_2_2 1_wayne_0_3_3 --output outputs/beat-raw
+python scripts/start_demo.py --train-small
+```
+
+`--train-small` runs `lufa prepare-beat` on `--beat-root` (default `outputs/beat-raw`), trains for `--epochs` (default 6; about a minute on a laptop CPU for these three takes), builds the bank and records a provenance note shown in the viewer. Later runs of `python scripts/start_demo.py` reuse the result. The launcher chooses learned retrieval whenever both default (ignored) locations exist:
+
+| Path | Produced by |
+|---|---|
+| `outputs/lufa/model/` (`model.pt`, `tokenizer/`) | `lufa train --output outputs/lufa/model` |
+| `outputs/lufa/bank.npz` | `lufa bank --output outputs/lufa/bank.npz` |
+
+Pass `--model`/`--bank` for other locations. Without both files, or with `--authored`, it starts the labelled authored controller example. The small demo model is trained from scratch on one speaker, a few minutes of speech; it shows the learned path working, not the paper's model quality.
+
+For a full run, download BEAT English v0.2.1 following its [official access instructions](https://github.com/srymurphy/BEAT) (Hugging Face dataset `H-Liu1997/BEAT`, folder `beat_english_v0.2.1/<speaker>/<take>.{wav,json,TextGrid}`) and prepare every speaker:
+
+```sh
+lufa prepare-beat --root /path/to/beat_english_v0.2.1 --output data/beat
+lufa train --manifest data/beat/manifest.jsonl --audio-model data/encoders/wav2vec2 --text-model data/encoders/bert --output outputs/lufa/model --device cuda
+lufa bank --manifest data/beat/manifest.jsonl --model outputs/lufa/model --output outputs/lufa/bank.npz
+lufa evaluate --manifest data/beat/manifest.jsonl --model outputs/lufa/model --bank outputs/lufa/bank.npz --split test
+python scripts/start_demo.py
+```
+
+`prepare-beat` walks the layout and pairs same-stem WAV, face JSON and TextGrid files. It reads the TextGrid `words` tier and cuts 3-second windows; `--hop` (default 3 s) sets the stride and starts are snapped to word onsets unless `--no-snap`. A word belongs to the window containing its midpoint. Windows with fewer than `--min-words` words (default 1) are skipped. Each window writes a 16-kHz mono 16-bit WAV crop, the native 60-fps `[T,9]` face crop (selected by each frame's JSON `time`, clipped to [0,1]) and its transcript. `--window` is configurable only within the training contract (2.94–3.06 s).
+
+Splits are speaker-disjoint. A seeded ~10 %/10 % of speakers go to validation/test, or you can name them with `--validation-speakers`/`--test-speakers`. Speakers can be selected by id or name (`--speakers 1 2 scott`).
+
+BEAT's scripted readings repeat the same text across speakers. Repeated and near-repeated transcripts (exact match, or word-set Jaccard ≥ `--dup-threshold`, default 0.6) share a `text_group`, and `repeated_text` is set on them. By default `train` uses group-aware batches, so two clips of one group never act as each other's contrastive negatives. `--duplicates drop` instead keeps one clip per group and split. `prepare-summary.json` records counts of skipped windows, clipped weights and repeats.
+
 ### Immediate 3D channel demo
 
 ```powershell
@@ -90,7 +125,7 @@ python scripts/prepare_viewer.py
 lufa serve
 ```
 
-Open `http://127.0.0.1:8767`. The first clip is an authored controller example for the nine brow/eye channels, not a trained retrieval result. Use the checkpoint and bank workflow below to retrieve recorded motion.
+Open `http://127.0.0.1:8767`. Without `--model`/`--bank` the first clip is an authored controller example for the nine brow/eye channels, not a trained retrieval result. With a checkpoint and bank the first clip is a learned text-query retrieval (`--demo-text` sets the query).
 
 ### Detailed setup and local encoders
 
@@ -105,7 +140,7 @@ lufa --help
 
 On Linux/macOS activate with `source .venv/bin/activate`. Obtain Wav2Vec2 and BERT model/tokenizer files yourself, following [Wav2Vec2 documentation](https://huggingface.co/docs/transformers/model_doc/wav2vec2) and [BERT documentation](https://huggingface.co/docs/transformers/model_doc/bert), respecting each checkpoint's terms. Place them in local directories. The code uses `local_files_only=True` and performs no implicit downloads. Supply a BERT tokenizer consistent with your text language and checkpoint vocabulary.
 
-`--from-scratch` constructs compact random four-layer Wav2Vec2/BERT encoders (an explicit baseline alternative to pretrained fine-tuning). It still requires a **local BERT tokenizer**; no pretrained encoder weights are needed. No model files are bundled here.
+`--from-scratch` constructs compact random four-layer Wav2Vec2/BERT encoders (an explicit baseline alternative to pretrained fine-tuning). It needs either a **local BERT tokenizer** (`--text-model`) or `--corpus-vocab`, which builds a small lowercase WordPiece vocabulary from the training transcripts, with character fallback for unseen words. No pretrained encoder weights are needed, and no model files are bundled here.
 
 ### Synthetic quickstart
 
@@ -115,7 +150,7 @@ After installation, run `python scripts/verify.py`. It creates two aligned three
 
 Obtain synchronized speech, transcript and ARKit facial motion from [BEAT](https://github.com/srymurphy/BEAT) using its official access instructions. Versions, access conditions and channel formats vary. Do not redistribute recordings or generated banks merely because the source repository is public. MEAD could be an alternative after AU extraction/retargeting, but BEAT's recorded blendshapes avoid that extra estimation step.
 
-Prepare approximately 3-second **aligned** clips: 16-kHz mono signed 16-bit PCM WAV (47000..49000 samples), transcript of exactly that window, and `[T,9]` float32 motion 0..1 in this order:
+`lufa prepare-beat` (above) produces the clip contract below automatically. For other data, prepare approximately 3-second **aligned** clips yourself: 16-kHz mono signed 16-bit PCM WAV (47000..49000 samples), transcript of exactly that window, and `[T,9]` float32 motion 0..1 in this order:
 
 ```text
 browInnerUp, browOuterUpLeft, browOuterUpRight, browDownLeft, browDownRight,
@@ -124,10 +159,11 @@ eyeSquintLeft, eyeSquintRight, eyeWideLeft, eyeWideRight
 
 Use FFmpeg for waveform conversion (`ffmpeg -i input.wav -ar 16000 -ac 1 -c:a pcm_s16le output.wav`) and timed transcripts to choose windows. Do not pair a whole recording's transcript with a short motion crop. Motion is resampled to 90 frames; this preserves the chosen crop's endpoints but does not perform timestamp alignment. Audio/motion/transcript synchronization is your preparation responsibility.
 
-An adapter accepts BEAT named-channel JSON `{"names":[...],"frames":[{"weights":[...]}]}` and exports nine-channel motion. **Pass a previously cropped facial JSON**, not a full recording to time-compress:
+An adapter accepts BEAT named-channel JSON `{"names":[...],"frames":[{"weights":[...],"time":...}]}` and exports a 90-frame nine-channel clip. It measures the input's duration from the frame `time` values (60 fps when absent). Inputs longer than `--max-seconds` (default 3.5 s) are refused instead of being silently time-compressed. Crop with `--start/--end`, or pass `--allow-resample` to compress deliberately. Values outside [0,1] are clipped with a warning:
 
 ```powershell
 lufa convert-motion --input data/clips/clip-face.json --output data/clips/clip-face.npy
+lufa convert-motion --input 1_wayne_0_1_1.json --start 1.35 --end 4.35 --output data/clips/wayne-001-face.npy
 ```
 
 Write `data/manifest.jsonl` (paths relative to manifest; one record per line):
@@ -137,7 +173,7 @@ Write `data/manifest.jsonl` (paths relative to manifest; one record per line):
 {"id":"beat-b-001","speaker":"speaker-b","split":"test","text":"another aligned transcript","wav":"clips/b-001.wav","motion":"clips/b-001-face.npy"}
 ```
 
-These examples describe the schema; files are not included. Use at least two training records for contrastive negatives. Keep speakers disjoint across train/validation/test; the loader rejects overlap and duplicate clip ids. WAV is standardized per clip; tokenizer padding and Wav2Vec2 convolution output masks are excluded from pooled representations.
+These examples describe the schema; files are not included. `prepare-beat` adds optional `take`, `script`, `start`, `end`, `text_group` and `repeated_text` fields. Use at least two training records for contrastive negatives. Keep speakers disjoint across train/validation/test; the loader rejects overlap and duplicate clip ids. WAV is standardized per clip; tokenizer padding and Wav2Vec2 convolution output masks are excluded from pooled representations. Padded audio is zeroed. Following the Hugging Face guidance, the Wav2Vec2 attention mask goes only to layer-norm feature extractors (for example `wav2vec2-large-lv60`); group-norm checkpoints (for example `wav2vec2-base`) and the `--from-scratch` encoder receive zero-padded input without one.
 
 ### Train, build a bank, retrieve
 
@@ -160,7 +196,7 @@ Evaluation rejects held-out speaker overlap with checkpoint/bank speakers and re
 
 ### Local 3D face viewer and recorded retrieval
 
-The local viewer uses an original procedural Three.js character. Its first motion is an **authored controller example** that exercises the nine brow/eye channels; it is synthetic and says nothing about the trained model. Run `python scripts/prepare_viewer.py` once to download pinned Three.js 0.170.0 into ignored `static/vendor/`, then:
+The local viewer uses an original procedural Three.js character. Without a configured checkpoint and bank, its first motion is an **authored controller example** that exercises the nine brow/eye channels; it is synthetic and says nothing about the trained model. **Load authored example** shows it in either mode. Run `python scripts/prepare_viewer.py` once to download pinned Three.js 0.170.0 into ignored `static/vendor/`, then:
 
 ```powershell
 lufa serve

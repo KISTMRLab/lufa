@@ -4,6 +4,7 @@ from pathlib import Path
 import numpy as np
 from .data import manifest, batch, waveform, motion
 from .retrieval import CHANNELS, normalize, nearest, resample
+from .server import DEFAULT_DEMO_TEXT
 
 
 def save_model(model, tokenizer, directory, train_speakers, seed):
@@ -30,9 +31,31 @@ def load_model(directory, device):
     return model, tokenizer, ck
 
 
+SPECIAL_TOKENS = ["[PAD]", "[UNK]", "[CLS]", "[SEP]", "[MASK]"]
+
+
+def corpus_tokenizer(texts, directory):
+    """Small lowercase WordPiece vocabulary from training transcripts, with character fallback pieces.
+
+    Only for ``--from-scratch`` runs without a downloaded BERT tokenizer; unseen words split into characters.
+    """
+    from transformers import BertTokenizerFast
+    import re
+    import string
+    words = sorted({w for t in texts for w in re.findall(r"[a-z0-9]+|[^\sa-z0-9]", t.lower())})
+    chars = list(string.ascii_lowercase + string.digits)
+    punctuation = list(string.punctuation)
+    vocab = list(dict.fromkeys(SPECIAL_TOKENS + punctuation + chars + ["##" + c for c in chars] + words))
+    directory = Path(directory)
+    directory.mkdir(parents=True, exist_ok=True)
+    (directory / "vocab.txt").write_text("\n".join(vocab) + "\n", encoding="utf-8")
+    return BertTokenizerFast(vocab_file=str(directory / "vocab.txt"), do_lower_case=True)
+
+
 def train(args):
     import torch
     from transformers import BertTokenizerFast
+    from .data import group_batches, transcript_group
     from .model import RetrievalModel
     torch.manual_seed(args.seed)
     rng = np.random.default_rng(args.seed)
@@ -40,18 +63,29 @@ def train(args):
     rows = [r for r in all_rows if r["split"] == "train"]
     if len(rows) < 2 or args.batch_size < 2 or args.epochs < 1:
         raise ValueError("Need >=2 training records, batch size>=2, epochs>=1")
-    tokenizer = BertTokenizerFast.from_pretrained(args.text_model, local_files_only=True)
+    if args.corpus_vocab:
+        if not args.from_scratch:
+            raise ValueError("--corpus-vocab only applies to --from-scratch encoders")
+        tokenizer = corpus_tokenizer([r["text"] for r in rows], Path(args.output) / "tokenizer-source")
+    elif args.text_model:
+        tokenizer = BertTokenizerFast.from_pretrained(args.text_model, local_files_only=True)
+    else:
+        raise ValueError("Supply a local --text-model, or --from-scratch --corpus-vocab")
     if not args.from_scratch and not args.audio_model:
         raise ValueError("Local --audio-model is required unless --from-scratch")
     model = RetrievalModel.initialize(args.audio_model, args.text_model, args.from_scratch, len(tokenizer)).to(args.device)
     optimizer = torch.optim.AdamW(model.parameters(), lr=args.lr)
+    groups = [transcript_group(r) for r in rows] if args.sampler == "group" else list(range(len(rows)))
+    repeated = len(groups) - len(set(groups))
+    if repeated:
+        print(json.dumps({"repeated_transcripts": repeated,
+                          "note": "group-aware batches keep repeated transcripts out of the same contrastive batch"}))
     history = []
     for epoch in range(args.epochs):
         model.train()
-        order = rng.permutation(len(rows))
         losses = []
-        for start in range(0, len(order), args.batch_size):
-            chosen = [rows[i] for i in order[start:start + args.batch_size]]
+        for indices in group_batches(groups, args.batch_size, rng):
+            chosen = [rows[i] for i in indices]
             if len(chosen) < 2:
                 continue  # singleton has no contrastive negative; rotated each epoch by shuffling
             inputs = batch(chosen, tokenizer, args.device)
@@ -61,6 +95,8 @@ def train(args):
             torch.nn.utils.clip_grad_norm_(model.parameters(), 1.)
             optimizer.step()
             losses.append([float(loss.detach()), float(rec.detach()), float(nce.detach())])
+        if not losses:
+            raise ValueError("No batch contained two distinct transcripts; add records or use --sampler random")
         record = dict(zip(["loss", "reconstruction", "contrastive"], np.mean(losses, axis=0).tolist()))
         record["epoch"] = epoch + 1
         history.append(record)
@@ -90,6 +126,7 @@ def build_bank(args):
     output.parent.mkdir(parents=True, exist_ok=True)
     np.savez_compressed(output, embeddings=embeddings, motions=motions,
                         ids=np.asarray([r["id"] for r in rows]), speakers=np.asarray([r["speaker"] for r in rows]),
+                        texts=np.asarray([r["text"] for r in rows]),
                         channels=np.asarray(CHANNELS), fps=np.asarray(30))
     # Bank is generated locally; it is never a bundled distribution artifact.
     print(f"Indexed {len(rows)} recorded clips")
@@ -158,10 +195,23 @@ def evaluate(args):
 
 
 def convert(args):
-    # Named-channel BEAT JSON to normalized nine-channel motion. No downloads.
+    # Named-channel BEAT JSON (or [T,9] .npy) to a 90-frame nine-channel clip. No downloads.
+    from .data import face_motion
+    values = face_motion(args.input, args.start, args.end, args.max_seconds, args.allow_resample)
     output = Path(args.output)
     output.parent.mkdir(parents=True, exist_ok=True)
-    np.save(output, motion(args.input))
+    np.save(output, resample(values, 90))
+
+
+def prepare_beat(args):
+    from .beat import prepare
+    prepare(args.root, args.output, args.speakers, args.window, args.hop, not args.no_snap, args.min_words,
+            args.validation_speakers, args.test_speakers, args.duplicates, args.dup_threshold, args.max_takes, args.seed)
+
+
+def fetch_beat(args):
+    from .beat import fetch
+    print(json.dumps(fetch(args.speaker, args.takes, args.output, args.max_bytes), indent=2))
 
 
 def serve(args):
@@ -170,7 +220,8 @@ def serve(args):
     if bool(args.model) != bool(args.bank):
         raise ValueError("Provide --model and --bank together")
     server = ThreadingHTTPServer((args.host, args.port), create_handler(Path(args.model) if args.model else None,
-                                                                 Path(args.bank) if args.bank else None, args.device))
+                                                                 Path(args.bank) if args.bank else None, args.device,
+                                                                 args.demo_text))
     print(f"Open http://{args.host}:{args.port}")
     server.serve_forever()
 
@@ -178,15 +229,46 @@ def serve(args):
 def main():
     parser = argparse.ArgumentParser(description="LUFA-inspired audio/text retrieval")
     sub = parser.add_subparsers(dest="command", required=True)
-    p = sub.add_parser("convert-motion")
+    p = sub.add_parser("convert-motion", help="Crop-aligned BEAT face JSON or [T,9] .npy to a 90-frame clip")
     p.add_argument("--input", required=True)
     p.add_argument("--output", required=True)
+    p.add_argument("--start", type=float, help="Crop start in seconds (JSON frame time)")
+    p.add_argument("--end", type=float, help="Crop end in seconds (exclusive)")
+    p.add_argument("--max-seconds", type=float, default=3.5, help="Refuse longer inputs (whole takes)")
+    p.add_argument("--allow-resample", action="store_true",
+                   help="Deliberately time-compress an input longer than --max-seconds into 90 frames")
     p.set_defaults(run=convert)
+    p = sub.add_parser("prepare-beat", help="Official BEAT layout -> aligned ~3 s clips + manifest.jsonl")
+    p.add_argument("--root", required=True, help="beat_english_v0.2.1 directory (or any tree of BEAT takes)")
+    p.add_argument("--output", required=True, help="Directory for manifest.jsonl and clips/")
+    p.add_argument("--speakers", nargs="+", help="Speaker ids or names to include (default: all)")
+    p.add_argument("--window", type=float, default=3.0, help="Window length in seconds (training contract: ~3 s)")
+    p.add_argument("--hop", type=float, default=3.0, help="Hop between window starts in seconds")
+    p.add_argument("--no-snap", action="store_true", help="Do not snap window starts to word onsets")
+    p.add_argument("--min-words", type=int, default=1, help="Skip windows with fewer words")
+    p.add_argument("--validation-speakers", nargs="+")
+    p.add_argument("--test-speakers", nargs="+")
+    p.add_argument("--duplicates", choices=["flag", "drop"], default="flag",
+                   help="flag: keep repeated transcripts with a shared text_group; drop: keep one per group and split")
+    p.add_argument("--dup-threshold", type=float, default=0.6, help="Word-set Jaccard for near-repeated transcripts")
+    p.add_argument("--max-takes", type=int, help="Limit takes per speaker")
+    p.add_argument("--seed", type=int, default=42)
+    p.set_defaults(run=prepare_beat)
+    p = sub.add_parser("fetch-beat", help="Download named official BEAT takes (WAV, face JSON, TextGrid)")
+    p.add_argument("--speaker", required=True)
+    p.add_argument("--takes", nargs="+", required=True, help="e.g. 2_scott_0_1_1")
+    p.add_argument("--output", default="outputs/beat-raw")
+    p.add_argument("--max-bytes", type=int, default=25_000_000)
+    p.set_defaults(run=fetch_beat)
     p = sub.add_parser("train")
     p.add_argument("--manifest", required=True)
     p.add_argument("--audio-model")
-    p.add_argument("--text-model", required=True, help="Local BERT tokenizer/model directory")
+    p.add_argument("--text-model", help="Local BERT tokenizer/model directory")
     p.add_argument("--from-scratch", action="store_true")
+    p.add_argument("--corpus-vocab", action="store_true",
+                   help="With --from-scratch: build a small tokenizer from training transcripts instead of --text-model")
+    p.add_argument("--sampler", choices=["group", "random"], default="group",
+                   help="group: never batch repeated transcripts together (default)")
     p.add_argument("--epochs", type=int, default=20)
     p.add_argument("--batch-size", type=int, default=8)
     p.add_argument("--lr", type=float, default=2e-5)
@@ -223,6 +305,7 @@ def main():
     p.add_argument("--device", default="cpu")
     p.add_argument("--host", default="127.0.0.1")
     p.add_argument("--port", type=int, default=8767)
+    p.add_argument("--demo-text", default=DEFAULT_DEMO_TEXT, help="Text query for the first learned clip")
     p.set_defaults(run=serve)
     args = parser.parse_args()
     args.run(args)

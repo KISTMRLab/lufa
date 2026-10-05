@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 
 CHANNELS = ["browInnerUp", "browOuterUpLeft", "browOuterUpRight", "browDownLeft", "browDownRight",
@@ -27,10 +29,15 @@ def nearest(query, embeddings, top_k=1):
 
 
 def resample(motion, frames):
+    """Linearly resample [T,9] motion to ``frames``; out-of-range weights are clipped to [0,1] with a warning."""
     motion = np.asarray(motion, dtype=np.float32)
     if motion.ndim != 2 or motion.shape[1] != 9 or len(motion) < 2 or frames < 2:
         raise ValueError("Need nine-channel motion and at least two frames")
-    if not np.isfinite(motion).all() or (motion < 0).any() or (motion > 1).any():
-        raise ValueError("Motion must be finite in [0,1]")
+    if not np.isfinite(motion).all():
+        raise ValueError("Motion must be finite")
+    outside = int(((motion < -1e-6) | (motion > 1 + 1e-6)).sum())
+    if outside:
+        warnings.warn(f"Clipped {outside} facial weight(s) outside [0,1]", stacklevel=2)
+    motion = np.clip(motion, 0., 1.)
     return np.stack([np.interp(np.linspace(0, 1, frames), np.linspace(0, 1, len(motion)), motion[:, c])
                      for c in range(9)], -1).astype(np.float32)
