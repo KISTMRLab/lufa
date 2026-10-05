@@ -50,6 +50,26 @@ Read the paper through its [publisher record](https://doi.org/10.1109/ismar-adju
 
 Please cite the research paper when using its ideas; [download the BibTeX citation](citation.bib). The implementation has its own documented scope.
 
+<!-- demo-preview:start -->
+## Demo preview
+
+![Lufa runnable demo](demo-assets/preview.png)
+
+*Local demo with small starter examples; the capture illustrates the interface, not a reproduced paper benchmark.*
+
+From the repository root, using the Python environment described below:
+
+```sh
+python -m pip install -e .
+python scripts/start_demo.py
+```
+
+Open **http://127.0.0.1:8080/**. Click **Play** to animate the automatically loaded nine-channel face example, or adjust its channel controls. The launcher selects the bundled inputs automatically; it also builds the small authored index for RAG demos. Avatar demos prepare their pinned Three.js modules on first launch, so that step needs internet access. Model weights and public datasets are optional for the starter workflow and are prepared separately for real-data use.
+
+The 3D presentation uses shared Three.js avatar components and bundled fictional CC0 characters. The paper-specific algorithms and data adapters live in this repository.
+
+<!-- demo-preview:end -->
+
 ## Implementation and usage
 
 <!-- implementation-guide -->
@@ -163,7 +183,7 @@ The browser demos include Rowan and Mira, two new fictional GLB characters built
 
 Recorded motion is adapted to the characters' proportions. Palm landmarks set hand orientation; finger curl uses bounded hinge bends and preserves the character's finger spacing. Thumb-base opposition stays in the authored pose, with conservative recorded curl at the remaining joints. Distal bends are estimated from the preceding joint when fingertip landmarks are absent. Use the companion's hand close-up views to inspect the result.
 
-The [recorded BEAT motion companion](static/recorded-motion.html) opens at `/static/recorded-motion.html` while the demo server is running. It plays locally selected motion, face, and WAV files on the bundled characters; this is recorded public-data inspection, separate from the paper implementation. No BEAT recording, dataset archive, or trained model is bundled. Install the one preparation dependency and fetch a small official sample into ignored `outputs/beat-demo/`:
+The [avatar motion companion](static/recorded-motion.html) opens at `/static/recorded-motion.html` while the demo server is running. A small authored motion and face sample loads automatically; click **Play** without uploading files. It also plays locally selected BEAT motion, face, and WAV files on the bundled characters. These are presentation and data-inspection tools, separate from the paper implementation. No BEAT recording, dataset archive, or trained model is bundled. For recorded public motion, install the one preparation dependency and fetch a small official sample into ignored `outputs/beat-demo/`:
 
 ```sh
 python -m pip install numpy
